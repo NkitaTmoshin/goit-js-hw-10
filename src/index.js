@@ -1,71 +1,68 @@
-import './css/styles.css';
-import { fetchCountries } from './fetchCountries';
 import debounce from 'lodash.debounce';
 import Notiflix from 'notiflix';
+import './css/styles.css';
+import { fetchCountries } from './fetchCountries';
 
-const input = document.querySelector('#search-box');
-const countryList = document.querySelector('.country-list');
-const countryInfo = document.querySelector('.country-info');
 const DEBOUNCE_DELAY = 300;
 
-input.addEventListener(
-  'input',
-  debounce(e => {
-      const trimmedValue = input.value.trim();
-         cleanHtml();   
-    if (trimmedValue !== '') {
-        fetchCountries(trimmedValue).then(foundData => {      
+const input = document.querySelector("#search-box");
+const list = document.querySelector(".country-list");
+const div = document.querySelector(".country-info");
 
-        if (foundData.length > 10) {
-          Notiflix.Notify.info(
-            'Too many matches found. Please enter a more specific name.'
-          );
-        } else if (foundData.length === 0) {
-          Notiflix.Notify.failure('Oops, there is no country with that name');
-        } else if (foundData.length >= 2 && foundData.length <= 10) {
-         
-          renderCountryList(foundData);
-        } else if (foundData.length === 1) {
-    
-          renderOneCountry(foundData);
-        }
-      });
-    }
-  }, DEBOUNCE_DELAY)
-);
+let searchCountryName = '';
 
-function renderCountryList(countries) {
-  const markup = countries
-    .map(country => {
-      return `<li>
-      <img src="${country.flags.svg}" alt="Flag of ${
-        country.name.official
-      }" width="30" hight="20">
-         <b>${country.name.official}</p>
-                </li>`;
+input.addEventListener("input", debounce(onInputChange, DEBOUNCE_DELAY));
+
+function onInputChange() {
+    searchCountryName = input.value.trim();
+    if (searchCountryName === '') {
+        clearAll();
+        return;
+    } else fetchCountries(searchCountryName).then(countryNames => {
+        if (countryNames.length < 2) {
+            createCountrieCard(countryNames);
+            Notiflix.Notify.success('Here your result');
+        } else if (countryNames.length < 10 && countryNames.length > 1) {
+            createCountrieList(countryNames);
+            Notiflix.Notify.success('Here your results');
+        } else {
+            clearAll();
+            Notiflix.Notify.info('Too many matches found. Please enter a more specific name.');
+        };
     })
-    .join('');
-  countryList.innerHTML = markup;
-}
+        .catch(() => {
+        clearAll();
+        Notiflix.Notify.failure('Oops, there is no country with that name.');
+    });
+};
 
-function renderOneCountry(countries) {
-      const markup = countries
-        .map(country => {
-          return `<li>
-      <img src="${country.flags.svg}" alt="Flag of ${
-            country.name.official
-          }" width="30" hight="20">
-         <b>${country.name.official}</b></p>
-            <p><b>Capital</b>: ${country.capital}</p>
-            <p><b>Population</b>: ${country.population}</p>
-            <p><b>Languages</b>: ${Object.values(country.languages)} </p>
-                </li>`;
-        })
-        .join('');
-      countryList.innerHTML = markup;
-}
+function createCountrieCard(country) {
+    clearAll();
+    const c = country[0];
+    const readyCard = `<div class="country-card">
+        <div class="country-card--header">
+            <img src="${c.flags.svg}" alt="Country flag" width="55", height="35">
+            <h2 class="country-card--name"> ${c.name.official}</h2>
+        </div>
+            <p class="country-card--field">Capital: <span class="country-value">${c.capital}</span></p>
+            <p class="country-card--field">Population: <span class="country-value">${c.population}</span></p>
+            <p class="country-card--field">Languages: <span class="country-value">${Object.values(c.languages).join(',')}</span></p>
+    </div>`
+    div.innerHTML = readyCard;
+};
 
-function cleanHtml() {
-  countryList.innerHTML = '';
-  countryInfo.innerHTML = '';
-}
+function createCountrieList(country) {
+    clearAll();
+    const readyList = country.map((c) => 
+        `<li class="country-list--item">
+            <img src="${c.flags.svg}" alt="Country flag" width="40", height="30">
+            <span class="country-list--name">${c.name.official}</span>
+        </li>`)
+        .join("");
+    list.insertAdjacentHTML('beforeend', readyList);
+};
+
+function clearAll() {
+  list.innerHTML = '';
+  div.innerHTML = '';
+};
